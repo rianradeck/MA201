@@ -51,7 +51,7 @@ def step(z):
         x_hat_minus, P_minus = prediction()
         # Kalman gain
         K = P_minus @ H.T @ np.linalg.inv(H @ P_minus @ H.T + V)
-        
+
         # Update
         x_hat_step = x_hat_minus + K @ (z - H @ x_hat_minus)
         P_step = (np.eye(6) - K @ H) @ P_minus
@@ -78,7 +78,7 @@ measures = np.array(measures)
 print(measures.shape)
 print(real_data.shape)
 
-def plot(data, pred = None, cov = None, remove_k_first=0):
+def plot(data, pred = None, cov = None, remove_k_first=0, remove_k_last=0):
     N = data.shape[1]
 
     X = data[0, :]
@@ -89,81 +89,94 @@ def plot(data, pred = None, cov = None, remove_k_first=0):
     Vz = data[5, :]
     if pred is not None:
         pred = np.array(pred)
-        X_pred = pred[0, remove_k_first:]
-        Y_pred = pred[1, remove_k_first:]
-        Z_pred = pred[2, remove_k_first:]
-        Vx_pred = pred[3, remove_k_first:]
-        Vy_pred = pred[4, remove_k_first:]
-        Vz_pred = pred[5, remove_k_first:]
+        X_pred = pred[0, remove_k_first:-remove_k_last]
+        Y_pred = pred[1, remove_k_first:-remove_k_last]
+        Z_pred = pred[2, remove_k_first:-remove_k_last]
+        Vx_pred = pred[3, remove_k_first:-remove_k_last]
+        Vy_pred = pred[4, remove_k_first:-remove_k_last]
+        Vz_pred = pred[5, remove_k_first:-remove_k_last]
     if cov is not None:
         cov = np.array(cov)
         trace = np.trace(cov, axis1=1, axis2=2)
-        sigma_x = np.sqrt(cov[remove_k_first:, 0, 0])
-        sigma_y = np.sqrt(cov[remove_k_first:, 1, 1])
-        sigma_z = np.sqrt(cov[remove_k_first:, 2, 2])
-        sigma_vx = np.sqrt(cov[remove_k_first:, 3, 3])
-        sigma_vy = np.sqrt(cov[remove_k_first:, 4, 4])
-        sigma_vz = np.sqrt(cov[remove_k_first:, 5, 5])
+        sigma_x = np.sqrt(cov[remove_k_first:-remove_k_last, 0, 0])
+        sigma_y = np.sqrt(cov[remove_k_first:-remove_k_last, 1, 1])
+        sigma_z = np.sqrt(cov[remove_k_first:-remove_k_last, 2, 2])
+        sigma_vx = np.sqrt(cov[remove_k_first:-remove_k_last, 3, 3])
+        sigma_vy = np.sqrt(cov[remove_k_first:-remove_k_last, 4, 4])
+        sigma_vz = np.sqrt(cov[remove_k_first:-remove_k_last, 5, 5])
 
-        
-    fig, axes = plt.subplots(2, 3, figsize=(12, 6))
+    def plot_in_time(axis, data, T=T, label = "", title="", ylabel="", xlabel="", offset=0):
+        axis.plot(T * np.arange(offset, offset + len(data)), data, label=label)
+        axis.set_title(title)
+        axis.set_ylabel(ylabel)
+        axis.set_xlabel(xlabel)
+    
+    def fill_between_in_time(axis, data, sigma, T=T, label="", offset=0):
+        axis.fill_between(T * np.arange(offset, offset + len(data)), data - 2*sigma, data + 2*sigma, alpha=0.3, label=label)
 
-    axes[0, 0].plot(X, label='Real')
-    axes[0, 0].set_title('X')
+    fig, axes = plt.subplots(3, 2, figsize=(16, 24))
+    zmX = axes[0, 0].inset_axes([0.65, 0.10, 0.3, 0.35]) # x0, y0, width, height
+    zoom_limits = (40, 50)
+    plot_in_time(zmX, X[zoom_limits[0]:zoom_limits[1]+1], label='Real', title='Zoomed X Position by time', ylabel='X Position', xlabel='Time', offset=zoom_limits[0])
 
-    axes[0, 1].plot(Y, label='Real')
-    axes[0, 1].set_title('Y')
-
-    axes[0, 2].plot(Z, label='Real')
-    axes[0, 2].set_title('Z')
-
-    axes[1, 0].plot(Vx, label='Real')
-    axes[1, 0].set_title('Vx')
-
-    axes[1, 1].plot(Vy, label='Real')
-    axes[1, 1].set_title('Vy')
-
-    axes[1, 2].plot(Vz, label='Real')
-    axes[1, 2].set_title('Vz')
+    plot_in_time(axes[0, 0], X, label="Real", title='True X Position by time', ylabel='X Position', xlabel='Time')
+    plot_in_time(axes[0, 1], Vx, label="Real", title='True X Velocity by time', ylabel='X Velocity', xlabel='Time')
+    plot_in_time(axes[1, 0], Y, label="Real", title='True Y Position by time', ylabel='Y Position', xlabel='Time')    
+    plot_in_time(axes[1, 1], Vy, label="Real", title='True Y Velocity by time', ylabel='Y Velocity', xlabel='Time')
+    plot_in_time(axes[2, 0], Z, label="Real", title='True Z Position by time', ylabel='Z Position', xlabel='Time')
+    plot_in_time(axes[2, 1], Vz, label="Real", title='True Z Velocity by time', ylabel='Z Velocity', xlabel='Time')
 
     if pred is not None:
         X_vals = list(range(remove_k_first, N+1))
-        axes[0, 0].plot(X_vals, X_pred, label='Prediction')
-        axes[0, 1].plot(X_vals, Y_pred, label='Prediction')
-        axes[0, 2].plot(X_vals, Z_pred, label='Prediction')
-        axes[1, 0].plot(X_vals, Vx_pred, label='Prediction')
-        axes[1, 1].plot(X_vals, Vy_pred, label='Prediction')
-        axes[1, 2].plot(X_vals, Vz_pred, label='Prediction')
+        plot_in_time(axes[0, 0], X_pred, label='Prediction', title='Predicted X Position by time', ylabel='X Position', xlabel='Time', offset=remove_k_first)
+        plot_in_time(zmX, X_pred[zoom_limits[0]-1: zoom_limits[1]], label='Prediction', offset=zoom_limits[0])
+        plot_in_time(axes[0, 1], Vx_pred, label='Prediction', title='Predicted X Velocity by time', ylabel='X Velocity', xlabel='Time', offset=remove_k_first)
+        plot_in_time(axes[1, 0], Y_pred, label='Prediction', title='Predicted Y Position by time', ylabel='Y Position', xlabel='Time', offset=remove_k_first)
+        plot_in_time(axes[1, 1], Vy_pred, label='Prediction', title='Predicted Y Velocity by time', ylabel='Y Velocity', xlabel='Time', offset=remove_k_first)
+        plot_in_time(axes[2, 0], Z_pred, label='Prediction', title='Predicted Z Position by time', ylabel='Z Position', xlabel='Time', offset=remove_k_first)
+        plot_in_time(axes[2, 1], Vz_pred, label='Prediction', title='Predicted Z Velocity by time', ylabel='Z Velocity', xlabel='Time', offset=remove_k_first)
 
-    fig_, axes_ = plt.subplots(1, 1, figsize=(6, 6))
     if cov is not None:
-        X_vals = list(range(remove_k_first, N+1))
-        axes[0, 0].fill_between(X_vals, X_pred - sigma_x, X_pred + sigma_x, alpha=0.3, label='Confidence')
-        axes[0, 1].fill_between(X_vals, Y_pred - sigma_y, Y_pred + sigma_y, alpha=0.3, label='Confidence')
-        axes[0, 2].fill_between(X_vals, Z_pred - sigma_z, Z_pred + sigma_z, alpha=0.3, label='Confidence')
-        axes[1, 0].fill_between(X_vals, Vx_pred - sigma_vx, Vx_pred + sigma_vx, alpha=0.3, label='Confidence')
-        axes[1, 1].fill_between(X_vals, Vy_pred - sigma_vy, Vy_pred + sigma_vy, alpha=0.3, label='Confidence')
-        axes[1, 2].fill_between(X_vals, Vz_pred - sigma_vz, Vz_pred + sigma_vz, alpha=0.3, label='Confidence')
+        fill_between_in_time(axes[0, 0], X_pred, sigma_x, label='Confidence', offset=remove_k_first)
+        fill_between_in_time(zmX, X_pred[zoom_limits[0]-1: zoom_limits[1]], sigma_x[zoom_limits[0]-1: zoom_limits[1]], label='Confidence', offset=zoom_limits[0])
+        fill_between_in_time(axes[0, 1], Vx_pred, sigma_vx, label='Confidence', offset=remove_k_first)
+        fill_between_in_time(axes[1, 0], Y_pred, sigma_y, label='Confidence', offset=remove_k_first)
+        fill_between_in_time(axes[1, 1], Vy_pred, sigma_vy, label='Confidence', offset=remove_k_first)
+        fill_between_in_time(axes[2, 0], Z_pred, sigma_z, label='Confidence', offset=remove_k_first)
+        fill_between_in_time(axes[2, 1], Vz_pred, sigma_vz, label='Confidence', offset=remove_k_first)
+        
+    def plot_trace():
+        fig_, axes_ = plt.subplots(1, 3, figsize=(18, 6))
+        if cov is not None:
+            # axes_.set_title('Trace of Cov Matrix')
+            cut = 25
+            axes_[0].semilogy(trace, label='Trace of P_k')
+            axes_[1].semilogy(range(cut), trace[:cut], label=f'Trace < {cut}')
+            axes_[2].semilogy(range(cut, len(trace)), trace[cut:], label=f'Trace >= {cut}')
 
-        axes_.plot(trace, label='Trace of P_k')
-        axes_.set_title('Trace of Cov Matrix')
-        axes_.set_xlabel('k')
-        axes_.set_ylabel('Trace')
-        axes_.grid(alpha=0.3)
-        axes_.legend()
+            for i in range(3):
+                axes_[i].set_xlabel('k')
+                axes_[i].set_ylabel('Trace')
+                axes_[i].grid(alpha=0.3)
+                axes_[i].legend()
 
-    for i in range(2):
-        for j in range(3):
+    for i in range(3):
+        for j in range(2):
             axes[i, j].legend()
             axes[i, j].grid(alpha=0.3)
+    zmX.grid(alpha=0.3)
+    axes[0, 0].indicate_inset_zoom(zmX, edgecolor='black')
+
+    # plot_trace()
 
     # Adjust layout to prevent overlapping
     plt.tight_layout()
 
     # Show the plot
-    plt.show()
+    # plt.show()
+    plt.savefig('plot.png')
 
 for measure in measures:
     step(measure)
 x_hat = np.array(x_hat).T.reshape(6, -1)
-plot(real_data, x_hat, P, 0)
+plot(real_data, x_hat, P, 1, 1)
