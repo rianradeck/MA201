@@ -75,7 +75,7 @@ def plot(data, T, pred=None, cov=None, remove_k_first=0):
         if cov is not None:
             print(trace)
             axes_.set_title("Trace of Cov Matrix")
-            axes_.plot(trace, label="Trace of P")
+            axes_.plot(np.arange(1, len(trace)), trace[1:], label="Trace of P")
 
             # for i in range(3):
             axes_.set_xlabel("Iteration")
@@ -83,7 +83,7 @@ def plot(data, T, pred=None, cov=None, remove_k_first=0):
             axes_.grid(alpha=0.3)
             axes_.legend()
 
-            formatted_values = [(f"{i} - {v:.4f}" if i <= 59 else f"{i} - {v:.8f}") for i, v in enumerate(trace[:-1])]
+            formatted_values = [(f"{i+1} - {v:.4f}" if i <= 59 else f"{i+1} - {v:.8f}") for i, v in enumerate(trace[1:])]
             table_data = np.reshape(formatted_values, (20, 5), order="F")
             latex_table = tabulate(table_data, tablefmt="latex")
             print(latex_table)
@@ -95,11 +95,11 @@ def plot(data, T, pred=None, cov=None, remove_k_first=0):
     zmX.grid(alpha=0.3)
     axes[0, 0].indicate_inset_zoom(zmX, edgecolor="black")
 
-    # plot_trace()
+    plot_trace()
 
     # Adjust layout to prevent overlapping
     plt.tight_layout()
 
     # Show the plot
-    plt.savefig("plot.png")
-    # plt.show()
+    # plt.savefig("plot.png")
+    plt.show()

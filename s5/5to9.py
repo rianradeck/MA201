@@ -28,9 +28,19 @@ W = T * np.array(
     ]
 )
 
-H = np.array([[1, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0]])
+H = np.eye(6)
 
-V = sigma_z * sigma_z * np.eye(3)
+sigma_zv = 10
+V = np.array(
+    [
+        [sigma_z * sigma_z, 0, 0, 0, 0, 0],
+        [0, sigma_z * sigma_z, 0, 0, 0, 0],
+        [0, 0, sigma_z * sigma_z, 0, 0, 0],
+        [0, 0, 0, sigma_zv * sigma_zv, 0, 0],
+        [0, 0, 0, 0, sigma_zv * sigma_zv, 0],
+        [0, 0, 0, 0, 0, sigma_zv * sigma_zv],
+    ]
+)
 
 x_hat = []
 P = []
@@ -66,15 +76,16 @@ def step(z):
 
 measures = []
 real_data = []
-with open("filtreKalman1.txt") as f:
-    for line in f:
-        if "#" in line:
-            temp = line.split("#")[0]
-            if len(temp) <= 100:
-                continue
-            real_data.append([float(x) for x in temp.split()])
+with open("filtreKalman2.txt") as f:
+    for idx, line in enumerate(f):
+        if idx < 5:
             continue
-        measures.append([float(x) for x in line.split()])
+        elif idx < 105:
+            measures.append([float(x) for x in line.split()])
+            continue
+        else:
+            real_data.append([float(x) for x in line.split()])
+
 real_data = np.array(real_data).reshape(6, -1)
 measures = np.array(measures)
 
