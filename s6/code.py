@@ -102,6 +102,7 @@ def plot_error():
     ax.set_xlabel("Iteration")
     ax.set_ylabel("Quadratic Estimation Error")
     ax.grid(alpha=0.3)
+    plt.savefig('error.png')
 
 def plot_estimates():
     X = data[:, 0]
@@ -142,9 +143,10 @@ def plot_trace():
     ax.set_xlabel("Iteration")
     ax.set_ylabel("Trace of Covariance Matrix")
     ax.grid(alpha=0.3)
+    plt.savefig('trace.png')
 
-plot_estimates()
+# plot_estimates()
+plt.tight_layout()
 plot_trace()
 plot_error()
-plt.tight_layout()
-plt.show()
+# plt.show()
